@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
-#include <uv.h>
 #include <string.h>
+#include "../libuv/include/uv.h"
 
 #define DEFAULT_BACKLOG 128
 
@@ -38,10 +38,16 @@ void on_new_connection(uv_stream_t *server, int status)
 	}	
 }
 
+void print_usage(const char *fileName)
+{
+	printf("usage :\n %s PORT \n", fileName);
+}
+
 int main(int argc, char **argv)
 {
 	if (argc != 2) {
-
+		print_usage(argv[0]);	
+		return 1;
 	}
 
 	int port = atoi(argv[1]);	
