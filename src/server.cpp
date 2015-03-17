@@ -1,22 +1,27 @@
 #include <cstdio>
 #include <cstdlib>
 #include <string.h>
-#include "../libuv/include/uv.h"
+#include "../include/base.h"
 
 #define DEFAULT_BACKLOG 128
 
 uv_loop_t *loop;
 
-void alloc_buffer(uv_handle_t* handle, size_t suggested_size, uv_buf_t *buf)
+void on_write(uv_write_t* write, int status)
 {
-	buf->base = (char*)malloc(suggested_size);
-	buf->len = suggested_size;
+	free(write);
 }
 
 void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 {
 	//接受客户端信息
 	printf("receive client message %s\n", buf->base);
+
+	uv_write_t *write = (uv_write_t*)malloc(sizeof(uv_write_t));
+	char *buffer = "hello, this is a chatroom server";
+	uv_buf_t wrBuf = uv_buf_init(buffer, strlen(buffer));
+	
+	uv_write(write, (uv_stream_t*)client, &wrBuf, 1, on_write);
 
 	if (buf->base)
 		free(buf->base);
