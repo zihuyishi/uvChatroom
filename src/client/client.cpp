@@ -3,7 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <iostream>
-#include "../include/base.h"
+#include "../../include/base.h"
 
 uv_loop_t *loop;
 
@@ -61,7 +61,7 @@ void on_connect(uv_connect_t *req, int status)
 
 void print_usage(const char *fileName)
 {
-	printf("usage : \n%s ip port\n", fileName);
+	std::cout << "usage :\n" << fileName << " ip port\n";
 }
 int main(int argc, char **argv)
 {

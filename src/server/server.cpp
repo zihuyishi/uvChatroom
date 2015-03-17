@@ -1,7 +1,7 @@
-#include <cstdio>
 #include <cstdlib>
-#include <string.h>
-#include "../include/base.h"
+#include <iostream>
+#include <cstring>
+#include "../../include/base.h"
 
 #define DEFAULT_BACKLOG 128
 
@@ -15,10 +15,10 @@ void on_write(uv_write_t* write, int status)
 void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 {
 	//接受客户端信息
-	printf("receive client message %s\n", buf->base);
+	std::cout << "receive client message " << buf->base << std::endl;
 
 	uv_write_t *write = (uv_write_t*)malloc(sizeof(uv_write_t));
-	char *buffer = "hello, this is a chatroom server";
+	char buffer[] = "hello, this is a chatroom server";
 	uv_buf_t wrBuf = uv_buf_init(buffer, strlen(buffer));
 	
 	uv_write(write, (uv_stream_t*)client, &wrBuf, 1, on_write);
@@ -29,7 +29,7 @@ void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 void on_new_connection(uv_stream_t *server, int status)
 {
 	if (status < 0) {
-		fprintf(stderr, "New connection error %s\n", uv_strerror(status));
+		std::cout << "New connection error " << uv_strerror(status) << std::endl;
 		return ;
 	}
 	
@@ -45,7 +45,7 @@ void on_new_connection(uv_stream_t *server, int status)
 
 void print_usage(const char *fileName)
 {
-	printf("usage :\n %s PORT \n", fileName);
+	std::cout << "usage :\n" << fileName << " PORT\n";
 }
 
 int main(int argc, char **argv)
@@ -68,8 +68,10 @@ int main(int argc, char **argv)
 	uv_tcp_bind(&server, (const struct sockaddr*)&addr, 0);
 	int r = uv_listen((uv_stream_t*) &server, DEFAULT_BACKLOG, on_new_connection);
 	if (r) {
-		fprintf(stderr, "Listen error %s\n", uv_strerror(r));
+		std::cout << "Listen error " << uv_strerror(r) << std::endl;
 		return 1;
+	} else {
+		std::cout << "succeed, listen on " << port << std::endl;
 	}
 
 	return uv_run(loop, UV_RUN_DEFAULT);
