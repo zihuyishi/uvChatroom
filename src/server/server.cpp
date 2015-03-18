@@ -1,30 +1,38 @@
 #include <cstdlib>
 #include <iostream>
 #include <cstring>
+#include <vector>
 #include "../../include/base.h"
 
 #define DEFAULT_BACKLOG 128
 
 uv_loop_t *loop;
+std::vector<uv_tcp_t*> connectionList;
 
 void on_write(uv_write_t* write, int status)
 {
-	free(write);
+	SafeDelete(write);
 }
 
 void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 {
 	//接受客户端信息
-	std::cout << "receive client message " << buf->base << std::endl;
-
-	uv_write_t *write = (uv_write_t*)malloc(sizeof(uv_write_t));
-	char buffer[] = "hello, this is a chatroom server";
-	uv_buf_t wrBuf = uv_buf_init(buffer, strlen(buffer));
+	std::cout << "receive client message :\n " << buf->base << std::endl;
 	
-	uv_write(write, (uv_stream_t*)client, &wrBuf, 1, on_write);
+	uv_tcp_t *connection = reinterpret_cast<uv_tcp_t*>(client);
+	char *buffer = new char[nread+1];
+	strncpy(buffer, buf->base, nread);
+	uv_buf_t wrBuf = uv_buf_init(buffer, strlen(buffer));
+	for (auto c : connectionList)
+	{
+		if (c == connection) continue;
+		uv_write_t *write = new uv_write_t;	
+		uv_write(write, (uv_stream_t*)c, &wrBuf, 1, on_write);
+	}	
 
 	if (buf->base)
-		free(buf->base);
+		delete[] buf->base;
+
 }
 void on_new_connection(uv_stream_t *server, int status)
 {
@@ -37,6 +45,7 @@ void on_new_connection(uv_stream_t *server, int status)
 	uv_tcp_init(loop, client);
 	if (uv_accept(server, (uv_stream_t*)client) == 0) {
 		//连接成功
+		connectionList.push_back(client);
 		uv_read_start((uv_stream_t*)client, alloc_buffer, echo_read);
 	} else {
 		uv_close((uv_handle_t*)client, NULL);

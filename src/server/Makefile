@@ -3,6 +3,7 @@ root = ../../
 debugDir = $(root)debug/
 objects = base.o server.o
 CC = g++
+CCFLAG = -c -std=c++11 -O1
 
 #
 client : $(objects)
@@ -10,10 +11,10 @@ client : $(objects)
 
 #object files
 base.o : ../base.cpp $(root)include/base.h
-	$(CC) -c ../base.cpp
+	$(CC) $(CCFLAG) ../base.cpp
 
 server.o : server.cpp $(root)include/base.h
-	$(CC) -c server.cpp
+	$(CC) $(CCFLAG)  server.cpp
 
 .PHONY :clean
 clean :
