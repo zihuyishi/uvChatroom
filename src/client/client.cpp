@@ -51,10 +51,11 @@ void on_connect(uv_connect_t *req, int status)
 	
 		uv_write_t* write = (uv_write_t*)malloc(sizeof(uv_write_t));	
 		char *buffer = new char[userName.length()+1];
-		strcpy(buffer, userName.c_str());	
-		uv_buf_t wrBuf = uv_buf_init(buffer, userName.length());
-		delete[] buffer;	
+		memcpy(buffer, userName.c_str(), userName.length());
+		buffer[userName.length()] = 0;	
+		uv_buf_t wrBuf = uv_buf_init(buffer, userName.length()+1);
 		uv_write(write, (uv_stream_t*)client, &wrBuf, 1, on_write);
+		delete[] buffer;
 	}
 		
 }

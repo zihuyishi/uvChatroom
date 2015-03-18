@@ -17,19 +17,19 @@ void on_write(uv_write_t* write, int status)
 void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 {
 	//接受客户端信息
-	std::cout << "receive client message :\n " << buf->base << std::endl;
-	
+	std::cout << "receive client message :\n" << buf->base << std::endl;
+
 	uv_tcp_t *connection = reinterpret_cast<uv_tcp_t*>(client);
 	char *buffer = new char[nread+1];
-	strncpy(buffer, buf->base, nread);
-	uv_buf_t wrBuf = uv_buf_init(buffer, strlen(buffer));
+	strcpy(buffer, buf->base);
+	uv_buf_t wrBuf = uv_buf_init(buffer, strlen(buffer)+1);
 	for (auto c : connectionList)
 	{
 		if (c == connection) continue;
 		uv_write_t *write = new uv_write_t;	
 		uv_write(write, (uv_stream_t*)c, &wrBuf, 1, on_write);
 	}	
-
+	delete [] buffer;
 	if (buf->base)
 		delete[] buf->base;
 
