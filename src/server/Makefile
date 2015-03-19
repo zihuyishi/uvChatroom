@@ -3,7 +3,7 @@ root = ../../
 debugDir = $(root)debug/
 objects = base.o server.o
 CC = g++
-CCFLAG = -c -std=c++11 -O1
+CCFLAG = -c -std=c++11  -g
 
 #
 client : $(objects)

@@ -11,6 +11,9 @@ typedef struct connect_info_s {
 	uv_tcp_t *p_tcp;
 } connect_info_t;
 
+void read_message(connect_info_t* info);
+
+
 void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
 	std::cout << "server say : " << buf->base << std::endl;
 	if (buf->base) {
@@ -18,14 +21,68 @@ void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
 	}
 }
 
-void on_write(uv_write_t *req, int status)
+void on_send_name(uv_write_t *req, int status)
 {
+	connect_info_t *info = reinterpret_cast<connect_info_t*>(req->data);
+	free(req);
 	if (status < 0) {
 		std::cout << "send name failed" << std::endl;
 	} else {
 		std::cout << "send name succeed" << std::endl;
+		assert(info && "connect_info is null");
+		read_message(info);
 	}
-	free(req);
+}
+
+void on_send_message(uv_write_t *write, int status)
+{
+	if (status < 0) {
+		std::cout << "send message fail" << std::endl;
+	} else {
+		std::cout << "send message succeed\n";
+	}
+	connect_info_t *info = reinterpret_cast<connect_info_s*>(write->data);
+	free(write);
+	read_message(info);
+}
+
+char *get_message()
+{
+	std::cout << "enter message:\n";
+	char *buffer = new char[4196];
+	char c;
+	size_t pos = 0;
+	c = getchar();
+	while (c != '\n' && c != EOF)
+	{
+		buffer[pos] = c;
+		if (pos == 4195)
+			break;
+		++pos;
+		c = getchar();
+	}
+	buffer[pos] = 0;
+	return buffer;
+}
+
+void read_message_thread(void *arg)
+{
+	connect_info_t *info = reinterpret_cast<connect_info_t*>(arg);
+	char *buffer = get_message(); 
+	size_t len = strlen(buffer);
+	uv_buf_t wrBuf = uv_buf_init(buffer, len+1);
+	
+	uv_write_t *write = new uv_write_t;
+	write->data = info;
+	
+	uv_write(write, reinterpret_cast<uv_stream_t*>(info->p_tcp), &wrBuf, 1, on_send_message);	
+	delete[] buffer;
+
+}
+void read_message(connect_info_t *info)
+{
+	uv_thread_t hThread;
+	uv_thread_create(&hThread, read_message_thread, info);
 }
 
 void on_connect(uv_connect_t *req, int status)
@@ -46,15 +103,14 @@ void on_connect(uv_connect_t *req, int status)
 		uv_read_start((uv_stream_t*)client, alloc_buffer, on_read);
 
 		std::cout << "please enter your name:\n";
-		std::string userName;
-		std::cin >> userName;
 	
 		uv_write_t* write = (uv_write_t*)malloc(sizeof(uv_write_t));	
-		char *buffer = new char[userName.length()+1];
-		memcpy(buffer, userName.c_str(), userName.length());
-		buffer[userName.length()] = 0;	
-		uv_buf_t wrBuf = uv_buf_init(buffer, userName.length()+1);
-		uv_write(write, (uv_stream_t*)client, &wrBuf, 1, on_write);
+		write->data = info;
+
+		char *buffer = get_message();
+		size_t len = strlen(buffer);
+		uv_buf_t wrBuf = uv_buf_init(buffer, len+1);
+		uv_write(write, (uv_stream_t*)client, &wrBuf, 1, on_send_name);
 		delete[] buffer;
 	}
 		

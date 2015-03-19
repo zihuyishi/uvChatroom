@@ -2,7 +2,7 @@ root = ../../
 debugDir = $(root)debug/
 objects = base.o client.o
 CC = g++
-CCFLAG = -c -std=c++11 -O1
+CCFLAG = -c -std=c++11 -g
 
 client : $(objects) 
 	$(CC) -luv -o $(debugDir)client $(objects)
