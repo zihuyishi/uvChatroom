@@ -43,7 +43,6 @@ void on_send_message(uv_write_t *write, int status)
 	}
 	connect_info_t *info = reinterpret_cast<connect_info_s*>(write->data);
 	free(write);
-	read_message(info);
 }
 
 char *get_message()
@@ -77,7 +76,7 @@ void read_message_thread(void *arg)
 	
 	uv_write(write, reinterpret_cast<uv_stream_t*>(info->p_tcp), &wrBuf, 1, on_send_message);	
 	delete[] buffer;
-
+	read_message(info);
 }
 void read_message(connect_info_t *info)
 {
