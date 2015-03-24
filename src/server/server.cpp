@@ -1,30 +1,43 @@
-#include <cstdio>
 #include <cstdlib>
-#include <string.h>
-#include "../libuv/include/uv.h"
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include "../../include/base.h"
 
 #define DEFAULT_BACKLOG 128
 
 uv_loop_t *loop;
+std::vector<uv_tcp_t*> connectionList;
 
-void alloc_buffer(uv_handle_t* handle, size_t suggested_size, uv_buf_t *buf)
+void on_write(uv_write_t* write, int status)
 {
-	buf->base = (char*)malloc(suggested_size);
-	buf->len = suggested_size;
+	SafeDelete(write);
 }
 
 void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 {
 	//接受客户端信息
-	printf("receive client message %s\n", buf->base);
+	std::cout << "receive client message :\n" << buf->base << std::endl;
 
+	uv_tcp_t *connection = reinterpret_cast<uv_tcp_t*>(client);
+	char *buffer = new char[nread+1];
+	strcpy(buffer, buf->base);
+	uv_buf_t wrBuf = uv_buf_init(buffer, strlen(buffer)+1);
+	for (auto c : connectionList)
+	{
+		if (c == connection) continue;
+		uv_write_t *write = new uv_write_t;	
+		uv_write(write, (uv_stream_t*)c, &wrBuf, 1, on_write);
+	}	
+	delete [] buffer;
 	if (buf->base)
-		free(buf->base);
+		delete[] buf->base;
+
 }
 void on_new_connection(uv_stream_t *server, int status)
 {
 	if (status < 0) {
-		fprintf(stderr, "New connection error %s\n", uv_strerror(status));
+		std::cout << "New connection error " << uv_strerror(status) << std::endl;
 		return ;
 	}
 	
@@ -32,6 +45,7 @@ void on_new_connection(uv_stream_t *server, int status)
 	uv_tcp_init(loop, client);
 	if (uv_accept(server, (uv_stream_t*)client) == 0) {
 		//连接成功
+		connectionList.push_back(client);
 		uv_read_start((uv_stream_t*)client, alloc_buffer, echo_read);
 	} else {
 		uv_close((uv_handle_t*)client, NULL);
@@ -40,7 +54,7 @@ void on_new_connection(uv_stream_t *server, int status)
 
 void print_usage(const char *fileName)
 {
-	printf("usage :\n %s PORT \n", fileName);
+	std::cout << "usage :\n" << fileName << " PORT\n";
 }
 
 int main(int argc, char **argv)
@@ -63,8 +77,10 @@ int main(int argc, char **argv)
 	uv_tcp_bind(&server, (const struct sockaddr*)&addr, 0);
 	int r = uv_listen((uv_stream_t*) &server, DEFAULT_BACKLOG, on_new_connection);
 	if (r) {
-		fprintf(stderr, "Listen error %s\n", uv_strerror(r));
+		std::cout << "Listen error " << uv_strerror(r) << std::endl;
 		return 1;
+	} else {
+		std::cout << "succeed, listen on " << port << std::endl;
 	}
 
 	return uv_run(loop, UV_RUN_DEFAULT);
