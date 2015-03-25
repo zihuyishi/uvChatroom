@@ -2,8 +2,12 @@
 #define UVCHATROOM_USER_HEADER
 #include <string>
 
-#define RAPIDJSON_HAS_STDSTRING
+#define RAPIDJSON_HAS_STDSTRING 1
 #include "../include/rapidjson/rapidjson.h"
+#include "../include/rapidjson/stringbuffer.h"
+#include "../include/rapidjson/writer.h"
+
+using namespace rapidjson;
 class User
 {
 	std::string m_name;
@@ -25,7 +29,8 @@ public:
 		writer.StartObject();
 		writer.String("name");
 		writer.String(m_name);
-		return std::string(writer.GetString());
+		writer.EndObject();
+		return std::string(s.GetString());
 	}
 };
 
