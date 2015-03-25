@@ -4,8 +4,10 @@
 #include <assert.h>
 #include <iostream>
 #include "../base.h"
+#include "../user.h"
 
 uv_loop_t *loop;
+User *g_user;
 
 typedef struct connect_info_s {
 	uv_tcp_t *p_tcp;
@@ -107,6 +109,12 @@ void on_connect(uv_connect_t *req, int status)
 		write->data = info;
 
 		char *buffer = get_message();
+		g_user = new User(buffer);
+		auto jsonUser = g_user->json();
+		delete[] buffer;
+		buffer = new char[jsonUser.length()+1];
+		strcpy(buffer, jsonUser.c_str());
+		
 		size_t len = strlen(buffer);
 		uv_buf_t wrBuf = uv_buf_init(buffer, len+1);
 		uv_write(write, (uv_stream_t*)client, &wrBuf, 1, on_send_name);

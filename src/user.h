@@ -15,6 +15,9 @@ public:
 	User(const char* name) {
 		m_name = std::string(name);
 	}
+	User(const std::string name) {
+		m_name = name;
+	}
 	User(const User &other) {
 		m_name = other.m_name;
 	}

@@ -1,4 +1,4 @@
-#include "../src/User.h"
+#include "../src/user.h"
 #include <cassert>
 #include <iostream>
 
