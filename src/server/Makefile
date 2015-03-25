@@ -10,10 +10,10 @@ client : $(objects)
 	$(CC) -luv -o $(debugDir)server $(objects)
 
 #object files
-base.o : ../base.cpp $(root)include/base.h
+base.o : ../base.cpp $(root)src/base.h
 	$(CC) $(CCFLAG) ../base.cpp
 
-server.o : server.cpp $(root)include/base.h
+server.o : server.cpp $(root)src/base.h
 	$(CC) $(CCFLAG)  server.cpp
 
 .PHONY :clean

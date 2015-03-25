@@ -3,7 +3,7 @@
 #include <string.h>
 #include <assert.h>
 #include <iostream>
-#include "../../include/base.h"
+#include "../base.h"
 
 uv_loop_t *loop;
 
