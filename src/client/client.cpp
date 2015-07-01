@@ -4,17 +4,25 @@
 #include <assert.h>
 #include <iostream>
 #include <base.h>
-#include <user.h>
 
 uv_loop_t *loop;
 User *g_user;
 
 typedef struct connect_info_s {
 	uv_tcp_t *p_tcp;
+    uv_async_t *async;
 } connect_info_t;
+
+typedef struct send_info_s {
+    uv_write_t *client;
+    uv_async_t *async;
+} send_info_t;
 
 void read_message(connect_info_t* info);
 
+static void on_printSendStatus(uv_async_t *handle) {
+
+}
 
 void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
 	std::cout << "server say : " << buf->base << std::endl;
@@ -23,7 +31,7 @@ void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
 	}
 }
 
-void on_send_name(uv_write_t *req, int status)
+void send_name_cb(uv_write_t *req, int status)
 {
 	connect_info_t *info = reinterpret_cast<connect_info_t*>(req->data);
 	free(req);
@@ -36,14 +44,15 @@ void on_send_name(uv_write_t *req, int status)
 	}
 }
 
-void on_send_message(uv_write_t *write, int status)
+void send_message_cb(uv_write_t *write, int status)
 {
+    connect_info_t *info = reinterpret_cast<connect_info_s*>(write->data);
 	if (status < 0) {
 		std::cout << "send message fail" << std::endl;
 	} else {
 		std::cout << "send message succeed\n";
 	}
-	connect_info_t *info = reinterpret_cast<connect_info_s*>(write->data);
+    delete[] write->bufs->base;
 	free(write);
 }
 
@@ -53,14 +62,14 @@ char *get_message()
 	char *buffer = new char[4196];
 	char c;
 	size_t pos = 0;
-	c = getchar();
+	c = (char) getchar();
 	while (c != '\n' && c != EOF)
 	{
 		buffer[pos] = c;
 		if (pos == 4195)
 			break;
 		++pos;
-		c = getchar();
+		c = (char) getchar();
 	}
 	buffer[pos] = 0;
 	return buffer;
@@ -71,12 +80,12 @@ void read_message_thread(void *arg)
 	connect_info_t *info = reinterpret_cast<connect_info_t*>(arg);
 	char *buffer = get_message(); 
 	size_t len = strlen(buffer);
-	uv_buf_t wrBuf = uv_buf_init(buffer, len+1);
-	
+	uv_buf_t wrBuf = uv_buf_init(buffer, (unsigned int) (len+1));
+
 	uv_write_t *write = new uv_write_t;
 	write->data = info;
-	
-	uv_write(write, reinterpret_cast<uv_stream_t*>(info->p_tcp), &wrBuf, 1, on_send_message);	
+
+    uv_write(write, reinterpret_cast<uv_stream_t *>(info->p_tcp), &wrBuf, 1, send_message_cb);
 	delete[] buffer;
 	read_message(info);
 }
@@ -117,11 +126,12 @@ void on_connect(uv_connect_t *req, int status)
 		
 		size_t len = strlen(buffer);
 		uv_buf_t wrBuf = uv_buf_init(buffer, len+1);
-		uv_write(write, (uv_stream_t*)client, &wrBuf, 1, on_send_name);
+        uv_write(write, (uv_stream_t *) client, &wrBuf, 1, send_name_cb);
 		delete[] buffer;
 	}
 		
 }
+
 
 void print_usage(const char *fileName)
 {
@@ -138,7 +148,7 @@ int main(int argc, char **argv)
 	const int port = atoi(argv[2]);
 
 	loop = uv_default_loop();
-	
+
 	uv_tcp_t *client = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
 	uv_tcp_init(loop, client);
 

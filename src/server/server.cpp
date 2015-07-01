@@ -1,6 +1,5 @@
 #include <cstdlib>
 #include <iostream>
-#include <cstring>
 #include <vector>
 #include <base.h>
 
@@ -14,12 +13,40 @@ void on_write(uv_write_t* write, int status)
 	SafeDelete(write);
 }
 
-void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
+static void close_cb(uv_handle_t *client) {
+    delete client;
+}
+static void shutdown_cb(uv_shutdown_t* req, int status) {
+    uv_close((uv_handle_t*)req->handle, close_cb);
+    delete req;
+}
+
+static void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 {
 	//接受客户端信息
 	std::cout << "receive client message :\n" << buf->base << std::endl;
 
-	uv_tcp_t *connection = reinterpret_cast<uv_tcp_t*>(client);
+	uv_tcp_t *connection = (uv_tcp_t*)client;
+    if (nread < 0) {
+        //Errors or EOF
+        delete[] buf->base;
+        auto iter = connectionList.begin();
+        for (; iter != connectionList.end(); ++iter) {
+            if (*iter == connection) break;
+        }
+        if (iter != connectionList.end()) {
+            connectionList.erase(iter);
+        }
+        uv_shutdown_t *shutdown_req = new uv_shutdown_t;
+        if (uv_shutdown(shutdown_req, client, shutdown_cb) != 0) {
+
+        }
+        return ;
+    }
+    if (nread == 0) {
+        delete[] buf->base;
+        return ;
+    }
 	char *buffer = new char[nread+1];
 	strcpy(buffer, buf->base);
 	uv_buf_t wrBuf = uv_buf_init(buffer, strlen(buffer)+1);
@@ -34,7 +61,7 @@ void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 		delete[] buf->base;
 
 }
-void on_new_connection(uv_stream_t *server, int status)
+static void on_new_connection(uv_stream_t *server, int status)
 {
 	if (status < 0) {
 		std::cout << "New connection error " << uv_strerror(status) << std::endl;
@@ -45,14 +72,15 @@ void on_new_connection(uv_stream_t *server, int status)
 	uv_tcp_init(loop, client);
 	if (uv_accept(server, (uv_stream_t*)client) == 0) {
 		//连接成功
+        client->data = server;
 		connectionList.push_back(client);
 		uv_read_start((uv_stream_t*)client, alloc_buffer, echo_read);
 	} else {
 		uv_close((uv_handle_t*)client, NULL);
-	}	
+	}
 }
 
-void print_usage(const char *fileName)
+static void print_usage(const char *fileName)
 {
 	std::cout << "usage :\n" << fileName << " PORT\n";
 }

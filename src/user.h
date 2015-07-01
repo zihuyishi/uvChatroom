@@ -3,9 +3,9 @@
 #include <string>
 
 #define RAPIDJSON_HAS_STDSTRING 1
-#include "../include/rapidjson/rapidjson.h"
-#include "../include/rapidjson/stringbuffer.h"
-#include "../include/rapidjson/writer.h"
+#include <rapidjson/rapidjson.h>
+#include <rapidjson/stringbuffer.h>
+#include <rapidjson/writer.h>
 
 using namespace rapidjson;
 class User
