@@ -25,7 +25,6 @@ static void shutdown_cb(uv_shutdown_t* req, int status) {
 static void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 {
 	//接受客户端信息
-
 	uv_tcp_t *connection = (uv_tcp_t*)client;
     if (nread < 0) {
         //Errors or EOF
