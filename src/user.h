@@ -23,6 +23,7 @@ public:
 	}
 	User& operator=(const User &other) {
 		m_name = other.m_name;
+		return *this;
 	}
 public:
 	std::string json() {

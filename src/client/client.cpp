@@ -3,8 +3,8 @@
 #include <string.h>
 #include <assert.h>
 #include <iostream>
-#include "../base.h"
-#include "../user.h"
+#include <base.h>
+#include <user.h>
 
 uv_loop_t *loop;
 User *g_user;
