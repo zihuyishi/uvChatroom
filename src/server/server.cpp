@@ -8,8 +8,9 @@
 uv_loop_t *loop;
 std::vector<uv_tcp_t*> connectionList;
 
-void on_write(uv_write_t* write, int status)
+void write_cb(uv_write_t *write, int status)
 {
+
 	SafeDelete(write);
 }
 
@@ -24,7 +25,6 @@ static void shutdown_cb(uv_shutdown_t* req, int status) {
 static void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 {
 	//接受客户端信息
-	std::cout << "receive client message :\n" << buf->base << std::endl;
 
 	uv_tcp_t *connection = (uv_tcp_t*)client;
     if (nread < 0) {
@@ -47,18 +47,20 @@ static void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
         delete[] buf->base;
         return ;
     }
-	char *buffer = new char[nread+1];
-	strcpy(buffer, buf->base);
-	uv_buf_t wrBuf = uv_buf_init(buffer, strlen(buffer)+1);
+    std::cout << "receive client message :\n" << buf->base << std::endl;
 	for (auto c : connectionList)
 	{
 		if (c == connection) continue;
-		uv_write_t *write = new uv_write_t;	
-		uv_write(write, (uv_stream_t*)c, &wrBuf, 1, on_write);
+
+        char *buffer = new char[nread];
+        memcpy(buffer, buf->base, (size_t) nread);
+		uv_write_t *write = new uv_write_t;
+        write->nbufs = 1;
+        write->bufs = new uv_buf_t[write->nbufs];
+        write->bufs[0] = uv_buf_init(buffer, nread);
+        uv_write(write, (uv_stream_t *) c, write->bufs, write->nbufs, write_cb);
 	}	
-	delete [] buffer;
-	if (buf->base)
-		delete[] buf->base;
+    delete[] buf->base;
 
 }
 static void on_new_connection(uv_stream_t *server, int status)

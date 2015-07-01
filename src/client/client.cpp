@@ -75,20 +75,24 @@ char *get_message()
 	return buffer;
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
 void read_message_thread(void *arg)
 {
 	connect_info_t *info = reinterpret_cast<connect_info_t*>(arg);
-	char *buffer = get_message(); 
-	size_t len = strlen(buffer);
-	uv_buf_t wrBuf = uv_buf_init(buffer, (unsigned int) (len+1));
+    while (true) {
+        char *buffer = get_message();
+        size_t len = strlen(buffer);
+        uv_buf_t wrBuf = uv_buf_init(buffer, (unsigned int) (len+1));
 
-	uv_write_t *write = new uv_write_t;
-	write->data = info;
+        uv_write_t *write = new uv_write_t;
+        write->data = info;
 
-    uv_write(write, reinterpret_cast<uv_stream_t *>(info->p_tcp), &wrBuf, 1, send_message_cb);
-	delete[] buffer;
-	read_message(info);
+        uv_write(write, reinterpret_cast<uv_stream_t *>(info->p_tcp), &wrBuf, 1, send_message_cb);
+        delete[] buffer;
+    }
 }
+#pragma clang diagnostic pop
 void read_message(connect_info_t *info)
 {
 	uv_thread_t hThread;
