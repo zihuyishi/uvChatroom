@@ -16,7 +16,7 @@ public:
 		TextMessage,
 		UserLeave,
 	} MessageType;
-	
+	std::string json() const;
 };
 
 #endif
