@@ -18,7 +18,7 @@ typedef struct send_info_s {
     char *buffer;
 } send_info_t;
 
-void read_message(connect_info_t* info);
+static void read_message(connect_info_t* info);
 
 
 static void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
