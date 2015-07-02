@@ -8,9 +8,12 @@
 uv_loop_t *loop;
 std::vector<uv_tcp_t*> connectionList;
 
-void write_cb(uv_write_t *write, int status)
+static void write_cb(uv_write_t *write, int status)
 {
-
+    char *buffer = reinterpret_cast<char *>(write->data);
+    if (buffer != nullptr) {
+        delete[] buffer;
+    }
 	SafeDelete(write);
 }
 
@@ -46,7 +49,8 @@ static void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
         delete[] buf->base;
         return ;
     }
-    std::cout << "receive client message :\n" << buf->base << std::endl;
+    buf->base[nread] = 0;
+    std::cout << "receive client message :\n" << buf->base;
 	for (auto c : connectionList)
 	{
 		if (c == connection) continue;
@@ -56,7 +60,8 @@ static void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 		uv_write_t *write = new uv_write_t;
         write->nbufs = 1;
         write->bufs = new uv_buf_t[write->nbufs];
-        write->bufs[0] = uv_buf_init(buffer, nread);
+        write->bufs[0] = uv_buf_init(buffer, (unsigned int) nread);
+        write->data = buffer;
         uv_write(write, (uv_stream_t *) c, write->bufs, write->nbufs, write_cb);
 	}	
     delete[] buf->base;
