@@ -21,7 +21,7 @@ typedef struct send_info_s {
 void read_message(connect_info_t* info);
 
 
-void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
+static void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
     if (nread < 0) {
         //Errors or EOF
         return ;
@@ -36,7 +36,7 @@ void on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
 	}
 }
 
-void send_name_cb(uv_write_t *req, int status)
+static void send_name_cb(uv_write_t *req, int status)
 {
 	connect_info_t *info = reinterpret_cast<connect_info_t*>(req->data);
 	free(req);
@@ -50,7 +50,7 @@ void send_name_cb(uv_write_t *req, int status)
 
 }
 
-void send_message_cb(uv_write_t *write, int status)
+static void send_message_cb(uv_write_t *write, int status)
 {
     char *buffer = reinterpret_cast<char *>(write->data);
     if (buffer != nullptr) {
@@ -64,7 +64,7 @@ void send_message_cb(uv_write_t *write, int status)
 	free(write);
 }
 
-char *get_message()
+static char *get_message()
 {
 	char *buffer = new char[4196];
 	char c;
@@ -83,7 +83,7 @@ char *get_message()
 	return buffer;
 }
 
-void on_write_msg(uv_async_t *async)
+static void on_write_msg(uv_async_t *async)
 {
     send_info_t *sendInfo = reinterpret_cast<send_info_t *>(async->data);
     char *buffer = sendInfo->buffer;
@@ -98,7 +98,7 @@ void on_write_msg(uv_async_t *async)
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-noreturn"
-void read_message_thread(void *arg)
+static void read_message_thread(void *arg)
 {
 	connect_info_t *info = reinterpret_cast<connect_info_t*>(arg);
     uv_async_t *async = new uv_async_t;
@@ -116,13 +116,13 @@ void read_message_thread(void *arg)
     }
 }
 #pragma clang diagnostic pop
-void read_message(connect_info_t *info)
+static void read_message(connect_info_t *info)
 {
 	uv_thread_t hThread;
 	uv_thread_create(&hThread, read_message_thread, info);
 }
 
-void on_connect(uv_connect_t *req, int status)
+static void on_connect(uv_connect_t *req, int status)
 {
 	connect_info_t *info = (connect_info_t*)req->data;
 	assert(info);
@@ -158,7 +158,7 @@ void on_connect(uv_connect_t *req, int status)
 }
 
 
-void print_usage(const char *fileName)
+static void print_usage(const char *fileName)
 {
 	std::cout << "usage :\n" << fileName << " ip port\n";
 }

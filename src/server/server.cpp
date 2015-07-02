@@ -11,9 +11,7 @@ std::vector<uv_tcp_t*> connectionList;
 static void write_cb(uv_write_t *write, int status)
 {
     char *buffer = reinterpret_cast<char *>(write->data);
-    if (buffer != nullptr) {
-        delete[] buffer;
-    }
+	SafeDeletes(buffer);
 	SafeDelete(write);
 }
 

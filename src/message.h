@@ -8,9 +8,11 @@
 
 class Message
 {
+private:
+    std::string m_msg;
 public:
 	typedef enum {
-		UserJoin,
+		UserJoin = 1,
 		TextMessage,
 		UserLeave,
 	} MessageType;
