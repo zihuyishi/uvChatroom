@@ -34,6 +34,7 @@ public:
 		writer.String("name");
 		writer.String(m_name);
 		writer.EndObject();
+
 		return std::string(s.GetString());
 	}
 };

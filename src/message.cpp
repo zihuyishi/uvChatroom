@@ -1,7 +1,6 @@
 #include "message.h"
 
 
-#define RAPIDJSON_HAS_STDSTRING 1
 using namespace rapidjson;
 using namespace std;
 
@@ -11,6 +10,9 @@ string Message::json() const
 	Writer<StringBuffer> writer(s);
 
 	writer.StartObject();
+
+	writer.String("body");
+    writer.String(m_msg);
 
 	writer.EndObject();
 	return string(s.GetString());

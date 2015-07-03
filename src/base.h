@@ -27,4 +27,9 @@ void SafeDeletes(T *&p) {
 		p = nullptr;
 	}
 }
+
+void PrintErrorMsg(const char *msg);
+
+
+size_t str_cleanTrail(char *str);
 #endif

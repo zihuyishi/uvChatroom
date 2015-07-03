@@ -3,10 +3,18 @@
 #include <vector>
 #include <base.h>
 
-#define DEFAULT_BACKLOG 128
+static const int DEFAULT_BACKLOG = 128;
+static const int MAX_USERNAME = 100;
 
 uv_loop_t *loop;
-std::vector<uv_tcp_t*> connectionList;
+
+typedef struct {
+    uv_tcp_t *connection;
+    char *username;
+    void *data;
+} connection_info_t;
+
+std::vector<connection_info_t *> connectionList;
 
 static void write_cb(uv_write_t *write, int status)
 {
@@ -16,7 +24,12 @@ static void write_cb(uv_write_t *write, int status)
 }
 
 static void close_cb(uv_handle_t *client) {
-    delete client;
+    connection_info_t *info = (connection_info_t *) client->data;
+    if (info) {
+        SafeDeletes(info->username);
+        SafeDelete(info);
+    }
+    SafeDelete(client);
 }
 static void shutdown_cb(uv_shutdown_t* req, int status) {
     uv_close((uv_handle_t*)req->handle, close_cb);
@@ -27,12 +40,13 @@ static void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
 {
 	//接受客户端信息
 	uv_tcp_t *connection = (uv_tcp_t*)client;
+    connection_info_t *info = (connection_info_t *) connection->data;
     if (nread < 0) {
         //Errors or EOF
         delete[] buf->base;
         auto iter = connectionList.begin();
         for (; iter != connectionList.end(); ++iter) {
-            if (*iter == connection) break;
+            if (*iter == info) break;
         }
         if (iter != connectionList.end()) {
             connectionList.erase(iter);
@@ -48,22 +62,46 @@ static void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
         return ;
     }
     buf->base[nread] = 0;
-    std::cout << "receive client message :\n" << buf->base;
-	for (auto c : connectionList)
-	{
-		if (c == connection) continue;
+    str_cleanTrail(buf->base);
+    if (info->username == nullptr) { //user name msg
+        info->username = new char[nread];
+        strncpy(info->username, buf->base, (size_t) nread);
+        std::cout << info->username << " has join in.\n";
+    } else {
+        std::cout << "receive client message :\n" << buf->base << std::endl;
+        for (auto c : connectionList)
+        {
+            if (c == info) continue;
 
-        char *buffer = new char[nread];
-        memcpy(buffer, buf->base, (size_t) nread);
-		uv_write_t *write = new uv_write_t;
-        write->nbufs = 1;
-        write->bufs = new uv_buf_t[write->nbufs];
-        write->bufs[0] = uv_buf_init(buffer, (unsigned int) nread);
-        write->data = buffer;
-        uv_write(write, (uv_stream_t *) c, write->bufs, write->nbufs, write_cb);
-	}	
+            char *buffer = new char[nread];
+            memcpy(buffer, buf->base, (size_t) nread);
+            uv_write_t *write = new uv_write_t;
+            write->nbufs = 1;
+            write->bufs = new uv_buf_t[write->nbufs];
+            write->bufs[0] = uv_buf_init(buffer, (unsigned int) nread);
+            write->data = buffer;
+            uv_write(write, (uv_stream_t *) c->connection, write->bufs, write->nbufs, write_cb);
+        }
+    }
     delete[] buf->base;
 
+}
+static void askname_cb(uv_write_t *write, int status)
+{
+    SafeDelete(write);
+    if (status < 0) {
+        PrintErrorMsg("ask username failed");
+    }
+}
+static void ask_username(connection_info_t *connectionInfo) {
+    uv_write_t *write = new uv_write_t;
+    write->data = connectionInfo;
+    const char *ask = "Pelease enter your name\n";
+    uv_buf_t buf = uv_buf_init(const_cast<char *>(ask), (unsigned int) strlen(ask));
+
+    uv_read_start((uv_stream_t*)connectionInfo->connection, alloc_buffer, echo_read);
+
+    uv_write(write, (uv_stream_t *)connectionInfo->connection, &buf, 1, askname_cb);
 }
 static void on_new_connection(uv_stream_t *server, int status)
 {
@@ -76,9 +114,13 @@ static void on_new_connection(uv_stream_t *server, int status)
 	uv_tcp_init(loop, client);
 	if (uv_accept(server, (uv_stream_t*)client) == 0) {
 		//连接成功
-        client->data = server;
-		connectionList.push_back(client);
-		uv_read_start((uv_stream_t*)client, alloc_buffer, echo_read);
+        connection_info_t *connectionInfo = new connection_info_t;
+        connectionInfo->connection = client;
+        connectionInfo->username = nullptr;
+        client->data = connectionInfo;
+		connectionList.push_back(connectionInfo);
+
+        ask_username(connectionInfo);
 	} else {
 		uv_close((uv_handle_t*)client, NULL);
 	}
