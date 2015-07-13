@@ -73,12 +73,17 @@ static void echo_read(uv_stream_t *client, ssize_t nread, const uv_buf_t *buf)
         {
             if (c == info) continue;
 
-            char *buffer = new char[nread];
-            memcpy(buffer, buf->base, (size_t) nread);
+            char *buffer = new char[nread + 256];
+            std::string msg = info->username;
+            msg.append(" says: ");
+            msg.append(buf->base);
+            msg.append("\n");
+
+            strncpy(buffer, msg.c_str(), (size_t) (nread+256));
             uv_write_t *write = new uv_write_t;
             write->nbufs = 1;
             write->bufs = new uv_buf_t[write->nbufs];
-            write->bufs[0] = uv_buf_init(buffer, (unsigned int) nread);
+            write->bufs[0] = uv_buf_init(buffer, (unsigned int) strlen(buffer));
             write->data = buffer;
             uv_write(write, (uv_stream_t *) c->connection, write->bufs, write->nbufs, write_cb);
         }
